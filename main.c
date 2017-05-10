@@ -98,28 +98,27 @@ int main(int argc, char *argv[])
                         }
                         else if(remote_address.ss_family == AF_INET6)
                         {
-                            puts("Remote has an IPv6 address.");
                             struct sockaddr_in6 *cast =
                                 (struct sockaddr_in6*)&remote_address;
                             printf(
                                 "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"
                                 "%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
-                                ((char*)&cast->sin6_addr)[0],
-                                ((char*)&cast->sin6_addr)[1],
-                                ((char*)&cast->sin6_addr)[2],
-                                ((char*)&cast->sin6_addr)[3],
-                                ((char*)&cast->sin6_addr)[4],
-                                ((char*)&cast->sin6_addr)[5],
-                                ((char*)&cast->sin6_addr)[6],
-                                ((char*)&cast->sin6_addr)[7],
-                                ((char*)&cast->sin6_addr)[8],
-                                ((char*)&cast->sin6_addr)[9],
-                                ((char*)&cast->sin6_addr)[10],
-                                ((char*)&cast->sin6_addr)[11],
-                                ((char*)&cast->sin6_addr)[12],
-                                ((char*)&cast->sin6_addr)[13],
-                                ((char*)&cast->sin6_addr)[14],
-                                ((char*)&cast->sin6_addr)[15]
+                                cast->sin6_addr.s6_addr[0],
+                                cast->sin6_addr.s6_addr[1],
+                                cast->sin6_addr.s6_addr[2],
+                                cast->sin6_addr.s6_addr[3],
+                                cast->sin6_addr.s6_addr[4],
+                                cast->sin6_addr.s6_addr[5],
+                                cast->sin6_addr.s6_addr[6],
+                                cast->sin6_addr.s6_addr[7],
+                                cast->sin6_addr.s6_addr[8],
+                                cast->sin6_addr.s6_addr[9],
+                                cast->sin6_addr.s6_addr[10],
+                                cast->sin6_addr.s6_addr[11],
+                                cast->sin6_addr.s6_addr[12],
+                                cast->sin6_addr.s6_addr[13],
+                                cast->sin6_addr.s6_addr[14],
+                                cast->sin6_addr.s6_addr[15]
                             );
                         }
                         else
