@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sqlite3.h>
 #include <sys/socket.h>
@@ -20,7 +21,6 @@ char *allocateString(const char format[], ...)
 
     if(output)
     {
-	*output = '\0';
         vsprintf(output, format, arguments2);
     }
 
@@ -32,7 +32,7 @@ char *allocateString(const char format[], ...)
 
 char *ipv4ToString(const struct sockaddr_in *address)
 {
-   return allocateString("%u.%u.%u.%u\n",
+   return allocateString("%u.%u.%u.%u",
         ((char*)&address->sin_addr)[0],
         ((char*)&address->sin_addr)[1],
         ((char*)&address->sin_addr)[2],
@@ -44,7 +44,7 @@ char *ipv6ToString(const struct sockaddr_in6 *address)
 {
     return allocateString(
         "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"
-        "%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+        "%02x%02x:%02x%02x:%02x%02x:%02x%02x",
         address->sin6_addr.s6_addr[0],
         address->sin6_addr.s6_addr[1],
         address->sin6_addr.s6_addr[2],
@@ -83,9 +83,8 @@ char *ipToString(const struct sockaddr_storage *address)
 
 void createTable(sqlite3 *database)
 {
-    const char *query = "CREATE TABLE IF NOT EXISTS connections("
-    "i INTEGER PRIMARY KEY NOT NULL,"
-    "address INTEGER NOT NULL);";
+    const char *query = "CREATE TABLE IF NOT EXISTS "
+    "connections(address TEXT NOT NULL, time DATETIME NOT NULL);";
 
     char *error;
 
@@ -94,8 +93,26 @@ void createTable(sqlite3 *database)
         fprintf(stderr, "Failed to create database: %s.\n", error);
         sqlite3_free(error);
     }
+}
 
+void insertAddress(sqlite3 *database, const struct sockaddr_storage *address)
+{
+    char *address_string = ipToString(address);
 
+    char *query = allocateString(
+        "INSERT INTO connections (address, time) VALUES (\"%s\", datetime());", address_string
+    );
+
+    char *error;
+
+    if(sqlite3_exec(database, query, NULL, NULL, &error) != SQLITE_OK)
+    {
+        fprintf(stderr, "Failed to insert row: %s.\n", error);
+        sqlite3_free(error);
+    }
+
+    free(address_string);
+    free(query);
 }
 
 int main(int argc, char *argv[])
@@ -143,31 +160,29 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    struct sockaddr_storage remote_address;
-                    socklen_t remote_address_size = sizeof(remote_address);
-
-                    int remote = accept(
-                        sock,
-                        (struct sockaddr*)&remote_address,
-                        &remote_address_size
-                    );
-
-                    if(remote == -1)
+                    while(true)
                     {
-                        fputs("Failed to accept remote connection.\n", stderr);
-                    }
-                    else
-                    {
-                        char *address_string = ipToString(&remote_address);
+                        struct sockaddr_storage remote_address;
+                        socklen_t remote_address_size = sizeof(remote_address);
 
-                        printf("Received connection from %s\n", address_string);
+                        int remote = accept(
+                            sock,
+                            (struct sockaddr*)&remote_address,
+                            &remote_address_size
+                        );
 
-                        if(address_string)
+                        if(remote == -1)
                         {
-                            free(address_string);
+                            fputs("Failed to accept remote connection.\n", stderr);
                         }
-
-                        close(remote);
+                        else
+                        {
+                            char *address_string = ipToString(&remote_address);
+                            printf("Received connection from %s\n", address_string);
+                            insertAddress(database, &remote_address);
+                            free(address_string);
+                            close(remote);
+                        }
                     }
                 }
 
